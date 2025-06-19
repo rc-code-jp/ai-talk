@@ -21,12 +21,33 @@ export async function POST(req: Request) {
       return new Response('API key not configured', { status: 500 });
     }
 
-    // Gemini API用にメッセージ形式を変換
+    // システムプロンプトを追加してGemini API用にメッセージ形式を変換
     const contents = [
+      // システムプロンプト（日本語での応答を指定）
+      {
+        role: 'user' as const,
+        parts: [{ 
+          text: `あなたは親しみやすい日本語のAIアシスタントです。以下のルールに従って応答してください：
+
+1. 必ず日本語のみで応答してください
+2. 英語や他の言語は一切使用しないでください
+3. 自然で親しみやすい日本語で会話してください
+4. 簡潔で分かりやすい応答を心がけてください
+5. 絵文字は適度に使用してください
+
+これらのルールを必ず守って、ユーザーと日本語で会話してください。` 
+        }],
+      },
+      {
+        role: 'model' as const,
+        parts: [{ text: '分かりました！日本語のみで親しみやすく会話させていただきます。' }],
+      },
+      // 会話履歴
       ...history.map((msg) => ({
         role: msg.role === 'assistant' ? 'model' : 'user',
         parts: [{ text: msg.content }],
       })),
+      // ユーザーの新しいメッセージ
       {
         role: 'user' as const,
         parts: [{ text: user }],
