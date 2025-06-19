@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useStt } from './hooks/useStt';
 import { streamSSE } from './lib/sse';
 
@@ -16,6 +16,11 @@ export default function Home() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentAssistantMessage, setCurrentAssistantMessage] = useState('');
   const [isMounted, setIsMounted] = useState(false);
+  
+  // チャットコンテナのref
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const prevMessagesLengthRef = useRef(0);
+  const prevCurrentMessageRef = useRef('');
 
   const {
     isListening,
@@ -44,6 +49,18 @@ export default function Home() {
       return () => clearTimeout(timer);
     }
   }, [isMounted, sttSupported, isListening, startListening]);
+
+  // メッセージが追加された際に自動スクロール
+  useEffect(() => {
+    const messagesChanged = messages.length !== prevMessagesLengthRef.current;
+    const currentMessageChanged = currentAssistantMessage !== prevCurrentMessageRef.current;
+    
+    if ((messagesChanged || currentMessageChanged) && chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      prevMessagesLengthRef.current = messages.length;
+      prevCurrentMessageRef.current = currentAssistantMessage;
+    }
+  });
 
   // ユニークなIDを生成する関数
   const generateMessageId = useCallback(() => {
@@ -246,7 +263,7 @@ export default function Home() {
         )}
 
         {/* チャット履歴 */}
-        <div className="chat-container bg-white rounded p-4 mb-6 shadow-xs">
+        <div className="chat-container bg-white rounded p-4 mb-6 shadow-xs" ref={chatContainerRef}>
           {messages.length === 0 && !currentAssistantMessage && (
             <div className="text-center text-gray-500 py-8">
               まだメッセージがありません。
