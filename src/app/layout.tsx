@@ -13,7 +13,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ja">
-      <body className="min-h-screen bg-gray-50">{children}</body>
+      <body className="h-screen w-screen overflow-hidden bg-gradient-to-br from-gray-900 via-blue-900 to-gray-900">{children}</body>
     </html>
   );
 }

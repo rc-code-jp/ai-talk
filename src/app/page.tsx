@@ -1,15 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useStt } from './hooks/useStt';
-import { streamSSE } from './lib/sse';
-
-interface ChatMessage {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  timestamp: Date;
-}
+import type { ChatMessage } from '../types/chat';
+import { useStt } from '../hooks/useStt';
+import { streamSSE } from '../lib/sse';
+import ChatContainer from '../components/ChatContainer';
+import StatusPanel from '../components/StatusPanel';
+import ControlPanel from '../components/ControlPanel';
 
 export default function Home() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -217,112 +214,53 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-4xl mx-auto">
-        <header className="text-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
-            AI Talk - 音声チャット
-          </h1>
-          <p className="text-gray-600">
-            マイクボタンを押して話しかけてください
-          </p>
-        </header>
+    <div className="h-screen w-screen flex flex-col">
+      {/* サイバーヘッダー */}
+      <header className="cyber-header flex-shrink-0 px-6 pt-6">
+        <h1 className="cyber-title">
+          AI TALK SYSTEM
+        </h1>
+        <p className="cyber-subtitle font-mono">
+          Neural Voice Interface • Version 2.0
+        </p>
+        <div className="mt-4 flex justify-center">
+          <div className="h-px w-32 bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
+        </div>
+      </header>
 
-        {/* 音声機能の対応状況 */}
-        <div className="bg-white rounded p-4 mb-6 shadow-xs">
-          <div className="text-sm">
-            <div>
-              <span className="font-medium">音声認識: </span>
-              {isMounted ? (
-                <span
-                  className={sttSupported ? 'text-green-600' : 'text-red-600'}
-                >
-                  {sttSupported ? '対応' : '非対応'}
-                </span>
-              ) : (
-                <span className="text-gray-500">確認中...</span>
-              )}
-            </div>
-          </div>
+      {/* メインコンテンツエリア */}
+      <div className="flex-1 flex flex-col px-6 pb-6 min-h-0">
+        {/* ステータスパネル */}
+        <div className="flex-shrink-0 mb-4">
+          <StatusPanel
+            sttSupported={sttSupported}
+            isListening={isListening}
+            isProcessing={isProcessing}
+            isMounted={isMounted}
+            sttError={sttError || undefined}
+            transcript={transcript}
+          />
         </div>
 
-        {/* エラー表示 */}
-        {sttError && (
-          <div className="bg-red-50 border border-red-200 rounded p-4 mb-6">
-            <div className="text-red-700">{sttError}</div>
-          </div>
-        )}
-
-        {/* 音声認識の状態表示 */}
-        {transcript && (
-          <div className="bg-blue-50 border border-blue-200 rounded p-4 mb-6">
-            <div className="text-blue-700">
-              <strong>認識中:</strong> {transcript}
-            </div>
-          </div>
-        )}
-
-        {/* チャット履歴 */}
-        <div className="chat-container bg-white rounded p-4 mb-6 shadow-xs" ref={chatContainerRef}>
-          {messages.length === 0 && !currentAssistantMessage && (
-            <div className="text-center text-gray-500 py-8">
-              まだメッセージがありません。
-              <br />
-              マイクボタンを押して話しかけてください。
-            </div>
-          )}
-
-          {messages.map((message, index) => (
-            <div
-              key={`${message.timestamp.getTime()}-${index}`}
-              className={message.role === 'user' ? 'message-user' : 'message-assistant'}
-            >
-              <div className="font-medium mb-1">
-                {message.role === 'user' ? 'あなた' : 'AI'}
-              </div>
-              <div>{message.content}</div>
-              <div className="text-xs opacity-60 mt-1">
-                {message.timestamp.toLocaleTimeString()}
-              </div>
-            </div>
-          ))}
-
-          {/* 現在生成中のアシスタントメッセージ */}
-          {currentAssistantMessage && (
-            <div className="message-assistant">
-              <div className="font-medium mb-1">AI</div>
-              <div>{currentAssistantMessage}</div>
-              <div className="text-xs opacity-60 mt-1">生成中...</div>
-            </div>
-          )}
+        {/* チャットコンテナ - 残りのスペースを全て使用 */}
+        <div className="flex-1 min-h-0 mb-4">
+          <ChatContainer
+            ref={chatContainerRef}
+            messages={messages}
+            currentAssistantMessage={currentAssistantMessage}
+          />
         </div>
 
-        {/* コントロールボタン */}
-        <div className="flex justify-center gap-4 flex-wrap">
-          <button
-            type="button"
-            onClick={handleMicToggle}
-            disabled={!isMounted || !sttSupported || isProcessing}
-            className={`btn-primary ${
-              isListening ? 'bg-red-600 hover:bg-red-700' : ''
-            }`}
-          >
-            {isListening ? '🔴 録音停止' : '🎤 音声認識開始'}
-          </button>
-
-          <button
-            type="button"
-            onClick={handleClearChat}
-            className="btn-secondary"
-          >
-            🗑️ チャットクリア
-          </button>
-        </div>
-
-        {/* 状態表示 */}
-        <div className="text-center mt-4 text-sm text-gray-600">
-          {isProcessing && '🤔 AI が考えています...'}
-          {isListening && '👂 音声を聞いています...'}
+        {/* コントロールパネル */}
+        <div className="flex-shrink-0">
+          <ControlPanel
+            isListening={isListening}
+            isProcessing={isProcessing}
+            isMounted={isMounted}
+            sttSupported={sttSupported}
+            onMicToggle={handleMicToggle}
+            onClearChat={handleClearChat}
+          />
         </div>
       </div>
     </div>
